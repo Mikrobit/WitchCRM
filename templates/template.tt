@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Mirko Iannella - Fattura n. [% invoice.num %]</title>
+
+        <meta charset="UTF-8">
+
+        <style>
+        body {
+            width: 210mm;
+            /*height: 339.19mm;*/
+            /*height: 297mm;*/
+            max-height: 297mm;
+            margin: 0;
+            padding: 0;
+            font-size: 3mm;
+        }
+        .header1 {
+            width: 50%;
+            margin-left: 5%;
+            padding-top: 10mm;
+        }
+        .header2 {
+            width: 50%;
+            margin-left: 45%;
+            margin-right: 5%;
+            text-align: right;
+        }
+
+        .header{
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 80mm;
+            background: #EfEfFf;
+        }
+        .main {
+            position: absolute;
+            top: 80mm;
+            height: 197mm;
+            width: 100%;
+        }
+        .footer {
+            position: absolute;
+            top: 266mm;
+            height: 24mm;
+            width: 100%;
+            margin: 0;
+            background: #EfEfFf;
+        }
+
+        table {
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+            font-size: 1.5em;
+            border-spacing: 0;
+            border-collapse: separate;
+        }
+        th {
+            line-height: 4em;
+            vertical-align: middle;
+        }
+        td {
+            border-bottom: 1px solid #DDD;
+        }
+        tr:nth-of-type(2n) {
+            background-color: #F1F1F1;
+        }
+        .serv {
+            width: 80%;
+        }
+        .quant {
+            width: 9%;
+            text-align: center;
+        }
+        .price {
+            width: 10%;
+            text-align: right;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+        }
+
+        .dati_fattura {
+            text-align: center;
+            width:100%;
+        }
+
+        .pay_method {
+            margin-left: 5%;
+        }
+        .pay_method > h3 {
+            font-size: 1.4em;
+        }
+        </style>
+
+
+    </head>
+    <body>
+        <div class="header">
+
+            <pre class="header1">
+<strong>Mirko Iannella</strong>
+
+Indirizzo:      Via Fra' Giovanni da Pian di Carpine, 26
+                06127 - Perugia (PG)
+E-Mail:         mirko@iannella.sh
+Web:            https://iannella.sh
+Codice Fiscale: NNLMRK83R01A345R
+            </pre>
+            <pre class="header2">
+<strong>Spett.le</strong>
+
+[% dest.ragsoc %]
+[% dest.address %]
+[% dest.zip %] [% dest.city %] ([% dest.prov %]) [% dest.country %]
+p. iva [% dest.piva %]
+            </pre>
+
+            <div class="dati_fattura">Fattura [% IF proforma %]proforma [% END %]n. [% invoice.num %] del [% invoice.emitted %]</div>
+        </div>
+
+        <div class="main">
+
+            <div class="dettaglio">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="serv">Servizio</th>
+                        <th class="quant">Quantit&agrave;</th>
+                        <th class="price">Prezzo &euro;</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    [% FOREACH service IN services %]
+                    <tr>
+                        <td class="serv">[% service.0 %]</td>
+                        <td class="quant">[% service.1 %]</td>
+                        <td class="price">[% service.2 %]</td>
+                    </tr>
+                    [% END %]
+                    <tr>
+                        <td class="serv">Ritenuta d'acconto</td>
+                        <td class="quant">&nbsp;</td>
+                        <td class="price">[% ritenuta %]</td>
+                    </tr>
+                    <tr>
+                        <td class="serv">Totale lordo</td>
+                        <td class="quant">&nbsp;</td>
+                        <td class="price">[% lordo %]</td>
+                    </tr>
+                    <tr>
+                        <td class="serv">Totale dovuto</td>
+                        <td class="quant">&nbsp;</td>
+                        <td class="price"><strong>[% netto %]</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="pay_method">
+                <h3>Modalit&agrave; di pagamento</h3>
+                <span><strong>Bonifico Bancario</strong> intestato a Mirko Iannella - </span>
+                <span>IBAN: <i>IT60D0100503600000000001660</i></span>
+            </div>
+        </div>
+    </body>
+</html>
