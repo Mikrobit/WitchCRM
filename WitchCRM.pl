@@ -9,7 +9,10 @@ use Getopt::Std;
 
 use Data::Printer;
 
-my $version = "0.1";
+binmode STDIN, ':utf8';
+binmode STDOUT, ':utf8';
+
+my $version = "0.2";
 
 my $config_file = 'conf.pl';
 my $conf;
@@ -18,26 +21,128 @@ get_config( $config_file );
 # Get command line arguments
 $Getopt::Std::STANDARD_HELP_VERSION=1;
 my $opts = {};
-# l: 1 parameter: <invoices|clients> list all invoices or clients
+# l: 1 parameter: <i|c> list all invoices or clients
 # c: 1 parameter: client id. List invoices
 # p: 1 parameter: invoice number to print
-getopts('l:c:p:f:', $opts);
+# f: 1 parameter: (proforma) invoice number to print
+# a: no parameters: add client
+# i: 1 parameter: client id. Add invoice for client
+getopts('l:c:p:f:ai:', $opts);
 
-list_invoices() if( $opts->{'l'} eq 'invoices');
-list_clients() if( $opts->{'l'} eq 'clients');
-list_clients_invoices( $opts->{'c'} ) if( $opts->{'c'} );
-print_invoice( $opts->{'p'}, 0 ) if( $opts->{'p'} );
-print_invoice( $opts->{'f'}, 1 ) if( $opts->{'f'} );
+list_invoices()                         if( $opts->{'l'} eq 'i');
+list_clients()                          if( $opts->{'l'} eq 'c');
+list_clients_invoices( $opts->{'c'} )   if( $opts->{'c'} );
+print_invoice( $opts->{'p'}, 0 )        if( $opts->{'p'} );
+print_invoice( $opts->{'f'}, 1 )        if( $opts->{'f'} );
+add_client()                            if( $opts->{'a'} );
+add_invoice( $opts->{'i'} )             if( $opts->{'i'} );
 
 sub HELP_MESSAGE {
     say "Usage:";
-    say "$0 -l <invoices|clients>  List all invoices / clients";
+    say "$0 -l <i|c>               List all invoices / clients";
     say "$0 -c <client id>         List invoices for client with id";
+    say "";
     say "$0 -p <invoice number>    Print invoice";
     say "$0 -f <invoice number>    Print proforma invoice";
+    say "";
+    say "$0 -a                     Add client";
+    say "$0 -i                     Add invoice";
 }
 sub VERSION_MESSAGE {
     say "WitchCRM v" . $version;
+}
+
+sub add_client {
+    my $client;
+
+    print "id: ";
+    $client->{'id'} = <STDIN>;
+    chomp $client->{'id'};
+    print "Name: ";
+    $client->{'ragsoc'} = <STDIN>;
+    chomp $client->{'ragsoc'};
+    print "Address: ";
+    $client->{'address'} = <STDIN>;
+    chomp $client->{'address'};
+    print "Zip: ";
+    $client->{'zip'} = <STDIN>;
+    chomp $client->{'zip'};
+    print "City: ";
+    $client->{'city'} = <STDIN>;
+    chomp $client->{'city'};
+    print "Province: ";
+    $client->{'prov'} = <STDIN>;
+    chomp $client->{'prov'};
+    print "Country: ";
+    $client->{'country'} = <STDIN>;
+    chomp $client->{'country'};
+
+    p $client;
+
+    db_add_invoice(
+        $client->{'id'},
+        $client->{'ragsoc'},
+        $client->{'address'},
+        $client->{'zip'},
+        $client->{'city'},
+        $client->{'prov'},
+        $client->{'country'}
+    );
+
+    exit(0);
+}
+
+sub add_invoice {
+
+    my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+
+    $year += 1900;
+    $mon++;
+    $mon = "0" . $mon if( $mon < 10 );
+    $mday = "0" . $mday if( $mday < 10 );
+
+    my $invoice;
+
+    $invoice->{'id'} = time;
+    $invoice->{'client'} = shift;
+    $invoice->{'emitted'} = $year . "-" . $mon . "-" . $mday;
+    $invoice->{'total'} = 0;
+
+    # Insert invoice rows
+    my @rows;
+    my $prod;
+    my $price;
+
+    while(1) {
+        print "Service or product name: ";
+        $prod = <STDIN>;
+        chomp $prod;
+        last if( $prod eq '' );
+        print "Price: ";
+        $price = <STDIN>;
+        chomp $price;
+        $invoice->{'total'} += $price;
+        push @rows, [$prod, 1, $price];
+    }
+
+    $invoice->{'products'} = to_json([@rows]);
+
+    print "Accounted: ";
+    $invoice->{'accounted'} = 0;
+    $invoice->{'accounted'} = 1 if(<STDIN> =~ '^y|^Y|^s|^S');
+
+    p $invoice;
+
+    db_add_invoice(
+        $invoice->{'id'},
+        $invoice->{'emitted'},
+        $invoice->{'products'},
+        $invoice->{'total'},
+        $invoice->{'accounted'},
+        $invoice->{'client'}
+    );
+
+    exit(0);
 }
 
 sub list_invoices {
@@ -161,6 +266,26 @@ sub db {
     my $dbh = DBI->connect( $conf->{'db_host'}, $conf->{'db_user'}, $conf->{'db_pass'}, { pg_enable_utf8 => 1 } )
 		or die ( ( defined DBI::errstr ) ? DBI::errstr : 'DBI::errstr undefined' );
     return $dbh;
+}
+sub db_add_client {
+    my ($id,$ragsoc,$address,$zip,$city,$prov,$country) = @_;
+    my $dbh = db();
+    my $sth = $dbh->prepare(
+        "INSERT INTO clients (id,ragsoc,address,zip,city,prov,country)
+        VALUES(?,?,?,?,?,?,?);"
+    );
+    $sth->execute();
+    return $sth;
+}
+sub db_add_invoice {
+    my ($id,$emitted,$products,$total,$accounted,$client) = @_;
+    my $dbh = db();
+    my $sth = $dbh->prepare(
+        "INSERT INTO invoices (id,emitted,products,total,accounted,client)
+        VALUES(?,?,?,?,?,?);"
+    );
+    $sth->execute($id,$emitted,$products,$total,$accounted,$client);
+    return $sth;
 }
 sub db_list_invoices {
     my $dbh = db();
