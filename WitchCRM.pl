@@ -125,7 +125,7 @@ sub add_invoice {
         push @rows, [$prod, 1, $price];
     }
 
-    $invoice->{'products'} = to_json([@rows]);
+    $invoice->{'products'} = encode_json([@rows]);
 
     print "Accounted: ";
     $invoice->{'accounted'} = 0;
