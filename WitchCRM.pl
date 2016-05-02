@@ -239,7 +239,7 @@ sub print_invoice {
         printf "child exited with value %d\n", $? >> 8;
     }
     unlink $html_output;
-    system('gpg', '-sb', $pdf_output);
+    system('gpg2', '-sb', $pdf_output);
     if ($? == -1) {
         print "failed to execute gpg: $!\n";
     }
